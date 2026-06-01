@@ -6,15 +6,17 @@ int main() {
     sharedmem.Create();
     sharedmem.Attach();
 
-    char* shm_start = (char*)sharedmem.Addr();
-    int size = sharedmem.Size();
-    while (true) {
-        for (int i = 0; i <size; ++i) {
-            std::cout << shm_start[i] << ' ';
-        }
-        std::cout << std:: endl;
-        sleep(3);
-    }
+    // char* shm_start = (char*)sharedmem.Addr();
+    // int size = sharedmem.Size();
+    // while (true) {
+    //     for (int i = 0; i <size; ++i) {
+    //         std::cout << shm_start[i] << ' ';
+    //     }
+    //     std::cout << std:: endl;
+    //     sleep(3);
+    // }
+
+    sharedmem.Attr();
 
     sharedmem.Detach();
     sharedmem.Delete();

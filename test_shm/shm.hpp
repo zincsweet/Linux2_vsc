@@ -28,7 +28,7 @@ public:
         int n = shmctl(_shmid, IPC_RMID, nullptr);
         if (n < 0) {
             std::cerr << "shmctl 删除失败:" << strerror(errno) << std::endl;
-            exit(5);
+            exit(6);
         }
         std::cout << "删除成功！" << std::endl;
     }
@@ -41,11 +41,21 @@ public:
         }
     }
 
+    void Attr() {
+        struct shmid_ds buf;
+        int n = shmctl(_shmid, IPC_STAT, &buf);
+        if (n == -1) {
+            std::cerr << "shmctl获取共享内存属性失败:" << strerror(errno) << std::endl;
+            exit(4);
+        }
+        std::cout << "key:" << buf.shm_perm.__key << std::endl;
+    }
+
     void Detach() {
         int n = shmdt(_start_addr);
         if (n == -1) {
             std::cerr << "shmdt解除挂接失败:" << strerror(errno) << std::endl;
-            exit(4);
+            exit(5);
         }
         std::cout << "解除挂接成功" << std::endl;
     }
@@ -85,7 +95,7 @@ private:
             std::cerr << "shmget创建共享内存失败:" << strerror(errno) << std::endl;
             exit(2);
         }
-        printf("16进制key:0x%x; _shmid:%d\n", k, _shmid);
+        printf("key:%d; _shmid:%d\n", k, _shmid);
     }
 
 private:
