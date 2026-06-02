@@ -10,12 +10,15 @@ void hander(int signo) {
 
 int main() {
 
-    signal(2, hander);
-    signal(3, hander);
+    // signal(2, hander);
+    // signal(3, hander);
 
     while (true) {
         std::cout << "test sig..." << getpid() << std::endl;
         sleep(1);
+        // 模拟除零
+        int a = 10;
+        a /= 0;
     }
 
     return 0;
