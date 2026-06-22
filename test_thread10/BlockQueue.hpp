@@ -35,7 +35,7 @@ public:
     void Enqueue(T& in) {
         pthread_mutex_lock(&_mutex);
 
-        if (IsFull()) {
+        while (IsFull()) {
             pthread_cond_wait(&_productor_cond, &_mutex);
         }
         _bq.emplace(in);
@@ -49,9 +49,10 @@ public:
     void Pop(T* out) {
         pthread_mutex_lock(&_mutex);
 
-        if (IsEmpty()) {
-            pthread_cond_wait(&_consumer_cond, &_mutex);
+        while (IsEmpty()) {
+            pthread_cond_wait(&_consumer_cond, &_mutex);    // 1. 过量的唤醒信息； 2. 函数调用失败； 3. 伪唤醒
         }
+        // 100% bq肯定有数据
         *out = _bq.front();
         _bq.pop();
         pthread_cond_signal(&_productor_cond);
