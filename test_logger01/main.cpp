@@ -12,14 +12,18 @@ int main() {
     // std::cout << GetCurrentTime() << std::endl;
     // sleep(1);
 
-    ENABLE_CONSOLE_LOG_STRATEGY();
-    logger.Debug("console strategy!");
-    logger.Debug("console strategy!");
-    logger.Debug("console strategy!");
+    // ENABLE_CONSOLE_LOG_STRATEGY();
+    // logger.Debug("console strategy!");
+    // logger.Debug("console strategy!");
+    // logger.Debug("console strategy!");
 
-    ENABLE_FILE_LOG_STRATEGY();
-    logger.Debug("file strategy!");
-    logger.Debug("file strategy!");
-    logger.Debug("file strategy!");
+    // ENABLE_FILE_LOG_STRATEGY();
+    // logger.Debug("file strategy!");
+    // logger.Debug("file strategy!");
+    // logger.Debug("file strategy!");
+
+    // ENABLE_CONSOLE_LOG_STRATEGY();
+    // Logger(LogLevel::DEBUG, __FILE__, __LINE__) << "Hello World" << "1234";
+
     return 0;
 }
