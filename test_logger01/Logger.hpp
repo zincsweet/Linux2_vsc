@@ -108,13 +108,13 @@ namespace NS_LOG_MODULE
             {
                 std::cerr << e.what() << std::endl;
             }
-            if (!_logpath.empty() && _logpath.back() != '/') _logpath += "/";
         }
         ~FileStrategy()
         {}
         void SyncLog(const std::string &message) override
         {
             LockGuard lg(_mutex);
+            if (!_logpath.empty() && _logpath.back() != '/') _logpath += "/";
             std::string targetlog = _logpath + _logfilename;    // "./log/log.txt"
             std::ofstream out(targetlog, std::ios::app);        // 追加的方式写入
             if (!out.is_open())
@@ -231,4 +231,5 @@ namespace NS_LOG_MODULE
 #define ENABLE_CONSOLE_LOG_STRATEGY() logger.UseConsoleStrategy();
 #define ENABLE_FILE_LOG_STRATEGY() logger.UseFileStrategy();
 
+#define LOG(level) logger(level, __FILE__, __LINE__)
 }

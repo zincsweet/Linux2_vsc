@@ -22,8 +22,9 @@ int main() {
     // logger.Debug("file strategy!");
     // logger.Debug("file strategy!");
 
-    // ENABLE_CONSOLE_LOG_STRATEGY();
-    // Logger(LogLevel::DEBUG, __FILE__, __LINE__) << "Hello World" << "1234";
+    ENABLE_FILE_LOG_STRATEGY();
+    LOG(LogLevel::DEBUG) << "Hello World" << "1234";
+    LOG(LogLevel::ERROR) << "Hello World" << "1234";
 
     return 0;
 }
