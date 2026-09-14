@@ -25,31 +25,35 @@ namespace NS_THREAD_POOL_MODULE
             char name[128];
             pthread_getname_np(pthread_self(), name, sizeof(name));
             while (true) {
-                // 保护临界区
-                _mutex.Lock();
-                // 检测有无任务
-                while (_isrunning && _tasks.empty()) {
-                    // 没有任务，休眠
-                    ++_slaver_sleep_count;
-                    _cond.Wait(_mutex);
-                    --_slaver_sleep_count;
+                T task;
+                {
+                    // 保护临界区
+                    LockGuard lg(_mutex);
+                    // 检测有无任务
+                    while (_isrunning && _tasks.empty()) {
+                        // 没有任务，休眠
+                        ++_slaver_sleep_count;
+                        _cond.Wait(_mutex);
+                        --_slaver_sleep_count;
+                    }
+
+                    // 若果是线程池要结束运行，正好没任务
+                    if (!_isrunning && _tasks.empty()) {
+                        _mutex.UnLock();
+                        break;
+                    }
+
+                    // 有任务，取任务(本质:将任务由公共的变为私有)
+                    task = _tasks.front();
+                    _tasks.pop();
                 }
-
-                // 若果是线程池要结束运行，正好没任务
-                if (!_isrunning && _tasks.empty()) {
-                    _mutex.UnLock();
-                    break;
-                }
-
-                // 有任务，取任务(本质:将任务由公共的变为私有)
-                T task = _tasks.front();
-                _tasks.pop();
-                _mutex.UnLock();
-
                 // 处理任务不需要在临界区内部处理
                 LOG(LogLevel::INFO) << name << "处理任务：";
                 task();
+                LOG(LogLevel::DEBUG) << task.Result();
             }
+            // 线程退出
+            LOG(LogLevel::INFO) << name << "quit...";
         }
 
     public:
