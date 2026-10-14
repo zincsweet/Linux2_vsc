@@ -3,7 +3,7 @@
 
 static void Usage(const std::string &process) {
     std::cerr << "Usage:\n\t";
-    std::cerr << process << " local_ip local_port" << std::endl;
+    std::cerr << process << " [local_ip] [local_port]" << std::endl;
 }
 
 // ./server_udp [ip] [port]
