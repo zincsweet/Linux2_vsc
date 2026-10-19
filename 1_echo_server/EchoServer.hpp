@@ -60,7 +60,7 @@ public:
     }
 
     void Loop() {
-        char inbuffer[1024];
+        char inbuffer[1024] = {0};
         while (true) {
             struct sockaddr_in peer;
             socklen_t peerlen = sizeof(peer);       
@@ -74,7 +74,7 @@ public:
             }
             else {
                 inbuffer[r] = 0;
-                LOG(LogLevel::DEBUG) << "client [" << _ip << ":" << peer.sin_port << "] say# ";
+                LOG(LogLevel::DEBUG) << "client [" << _ip << ":" << peer.sin_port << "] say# " << inbuffer;
                 std::string echo_string = "server echo---";
                 echo_string += inbuffer;
                 sendto(_sockfd, echo_string.c_str(), echo_string.size(), 0, (struct sockaddr*)&peer, peerlen);

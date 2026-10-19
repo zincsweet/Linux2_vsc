@@ -47,6 +47,21 @@ int main(int argc, char* argv[]) {
 
         // 2. sendto发送数据给server
         ssize_t r = sendto(sockfd, message.c_str(), message.size(), 0, (struct sockaddr*)&server, sizeof(server));
+        if (r > 0) {
+            // recvform
+            char inbuffer[1024] = {0};
+            struct sockaddr_in tmp{};   // 避免recvfrom()内参数填NULL，可能会出问题，只是存放收到的服务端的套接字
+            socklen_t tmplen = sizeof(tmp);
+            ssize_t n = recvfrom(sockfd, inbuffer, sizeof(inbuffer), 0, (struct sockaddr*)&tmp, &tmplen);
+            if (n > 0) {
+                inbuffer[n] = 0;
+                std::cout << inbuffer << std::endl;
+            }
+        }
+        else {
+            std::cerr << "sendto seeor:" << strerror(errno);
+            exit(3);
+        }
 
     }
 
