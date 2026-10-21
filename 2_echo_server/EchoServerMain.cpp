@@ -1,4 +1,5 @@
 #include "EchoServer.hpp"
+#include "Dict.hpp"
 #include <memory>
 
 static void Usage(const std::string &process) {
@@ -15,10 +16,17 @@ int main(int argc, char* argv[]) {
     }
     ENABLE_CONSOLE_LOG_STRATEGY()
 
+    // 1. 定义字典
+    Dict dict;
+
+    // 2. 构建网络服务，处理IO问题
     // std::string socket_ip = argv[1];
     uint16_t socket_port = std::stoi(argv[1]);
 
-    std::unique_ptr<UdpServer> usvr = std::make_unique<UdpServer>(socket_port);
+    // 3. 绑定上下两层
+    std::unique_ptr<UdpServer> usvr = std::make_unique<UdpServer>([&dict](std::string word){
+        return dict.Translate(word);
+    },socket_port);
     usvr->Init();
     usvr->Loop();
     return 0;

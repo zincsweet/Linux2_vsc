@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string>
+#include <functional>
 #include "Logger.hpp"
 
 
@@ -11,6 +12,8 @@ using namespace NS_LOG_MODULE;
 
 const static int default_fd = -1;
 const static uint16_t default_port = 8888;
+
+using callback_t = std::function<std::string(std::string)>;
 
 enum {
     SUCCESS = 0,
@@ -23,9 +26,10 @@ class UdpServer
 {
 public:
     // UdpServer(const std::string &ip, uint16_t port = default_port)
-    UdpServer(uint16_t port = default_port)
+    UdpServer(callback_t cb, uint16_t port = default_port)
     :_sockfd(default_fd),
-     _port(port)
+     _port(port),
+     _cb(cb)
     {}
 
     ~UdpServer()
@@ -100,11 +104,13 @@ public:
 
                 // 用户发来的数据
                 inbuffer[r] = 0;
-                LOG(LogLevel::DEBUG) << "client [" << client_addr << "] say# " << inbuffer;
-                std::string echo_string = "server echo---";
-                echo_string += inbuffer;
+                // LOG(LogLevel::DEBUG) << "client [" << client_addr << "] say# " << inbuffer;
+                // std::string echo_string = "server echo---";
+                // echo_string += inbuffer;
+
+                std::string result = _cb(inbuffer);
                 
-                sendto(_sockfd, echo_string.c_str(), echo_string.size(), 0, (struct sockaddr*)&peer, peerlen);
+                sendto(_sockfd, result.c_str(), result.size(), 0, (struct sockaddr*)&peer, peerlen);
             }
         }
     }
@@ -112,4 +118,5 @@ private:
     int _sockfd;
     // std::string _ip;    // "192.168.2.2"(字符串风格的点分十进制IP地址，给人看) && 4字节IP
     uint16_t _port;
+    callback_t _cb;
 };

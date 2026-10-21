@@ -53,10 +53,18 @@ public:
             std::string v = line.substr(sep_pos + sep.size());
             _dict.insert({k, v});
         }
+
+        LOG(LogLevel::INFO) << "load done...";
     }
 
     std::string Translate(std::string word) {
-        // auto it = 
+        auto it = _dict.find(word);
+        if (it != _dict.end()) {
+            return it->second;
+        }
+        else {
+            return "None";
+        }
     }
 private:
     std::string _dict_path;
