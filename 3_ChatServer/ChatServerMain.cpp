@@ -31,6 +31,8 @@ int main(int argc, char* argv[]) {
 
     // 网络服务模块
     UdpServer usvr(socket_port);
+    usvr.Init();
+    
     usvr.RegisterService(
         [&rt](const InetAddr& addr){
             rt.CheckUser(addr);

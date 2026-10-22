@@ -26,7 +26,7 @@ public:
     {
         memset(&_address, 0, sizeof(_address));
         _address.sin_family = AF_INET;
-        _address.sin_port = _port;
+        _address.sin_port = htons(_port);
         inet_pton(AF_INET, _ip.c_str(), &_address.sin_addr);
         _len = sizeof(_address);
     }

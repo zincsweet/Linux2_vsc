@@ -18,7 +18,7 @@ public:
         LockGuard lg(_lock);
         auto& users = _uma->Users();
         for (auto& user : users) {
-            sendto(sockfd, message.c_str(), sizeof(message), 0, (struct sockaddr*)user.GetNetAddress(), user.Len());
+            sendto(sockfd, message.c_str(), message.size(), 0, (struct sockaddr*)user.GetNetAddress(), user.Len());
         }
     }
 
