@@ -122,7 +122,7 @@ namespace NS_THREAD_POOL_MODULE
             if (_slaver_sleep_count > 0) {
                 _cond.Broadcast();
             }
-            _mutex.Lock();
+            _mutex.UnLock();
         }
 
         void Wait() {

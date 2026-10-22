@@ -86,10 +86,12 @@ public:
 
                 // 1. 检测新用户
                 InetAddr client_address(peer);
+                std::string message = client_address.ToString() + inbuffer;
+                LOG(LogLevel::DEBUG) << message;                
                 _handler_addr(client_address);
 
                 // 2. 转发消息
-                _handler_msg(_sockfd, inbuffer);
+                _handler_msg(_sockfd, message);
             }
         }
     }

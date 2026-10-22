@@ -38,10 +38,7 @@ namespace NS_THREAD_POOL_MODULE
                     }
 
                     // 若果是线程池要结束运行，正好没任务
-                    if (!_isrunning && _tasks.empty()) {
-                        _mutex.UnLock();
-                        break;
-                    }
+                    if (!_isrunning && _tasks.empty()) break;
 
                     // 有任务，取任务(本质:将任务由公共的变为私有)
                     task = _tasks.front();
@@ -121,7 +118,7 @@ namespace NS_THREAD_POOL_MODULE
             if (_slaver_sleep_count > 0) {
                 _cond.Broadcast();
             }
-            _mutex.Lock();
+            _mutex.UnLock();
         }
 
         void Wait() {

@@ -48,7 +48,7 @@ public:
     }
 
     std::string ToString() {
-        return _ip + ":" + std::to_string(_port);
+        return "[" + _ip + ":" + std::to_string(_port) + "]";
     }
 
 private:
