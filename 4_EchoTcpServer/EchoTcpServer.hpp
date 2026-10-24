@@ -5,6 +5,8 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <string>
+// #include <signal.h>
+#include <sys/wait.h>
 #include "Logger.hpp"
 #include "InetAddr.hpp"
 
@@ -17,7 +19,8 @@ enum {
     USE_ERR,
     SOCKET_ERR,
     BIND_ERR,
-    LISTEN_ERR
+    LISTEN_ERR,
+    FORK_ERR
 };
 
 class TcpServer
@@ -93,6 +96,7 @@ public:
     }
 
     void Loop() {
+        // signal(SIGCHLD, SIG_IGN);    非阻塞最佳实践
         while (true) {
             struct sockaddr_in clientaddr;
             socklen_t clientaddr_len = sizeof(clientaddr);
@@ -106,13 +110,42 @@ public:
             LOG(LogLevel::INFO) << "accpet成功!，sockfd:" << sockfd;
 
             // 6. 处理新的sockfd
-            InetAddr clientaddress(clientaddr);
-            serviceIO(sockfd, clientaddress);
+            
+            // 第一版，单进程
+            // InetAddr clientaddress(clientaddr);
+            // serviceIO(sockfd, clientaddress);
 
+            // 第二版，多进程
+            pid_t id = fork();
+            if (id < 0) {
+                LOG(LogLevel::FATAL) << "fork error!";
+                exit(FORK_ERR);
+            }
+            else if (id == 0) {
+                // 子进程
 
+                // 关闭掉自己不需要的sockfd
+                close(_listen_sockfd);
+
+                if (fork() > 0) exit(0);    // 子进程直接退出
+
+                // 孙子进程 -- 孤儿进程(系统自动回收)
+                InetAddr clientaddress(clientaddr);
+                serviceIO(sockfd, clientaddress);
+                close(sockfd);
+                exit(0);
+            }
+            else {  // id > 0
+                // 父进程
+
+                // 关掉自己不需要的sockfd
+                close(sockfd);
+
+                pid_t rid = waitpid(id, nullptr, 0);
+                (void)rid;
+            }
             close(sockfd);
         }
-
     }
 
 private:
