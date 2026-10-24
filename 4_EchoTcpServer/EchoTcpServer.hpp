@@ -4,7 +4,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <string>
 #include "Logger.hpp"
+#include "InetAddr.hpp"
 
 using namespace NS_LOG_MODULE;
 
@@ -59,7 +61,35 @@ public:
             exit(LISTEN_ERR);
         }
         LOG(LogLevel::INFO) << "listen监听开启!";
-        
+    }
+
+    void serviceIO(int sockfd, InetAddr& address) {
+        LOG(LogLevel::INFO) << "client address is " << address.ToString();
+        while (true) {
+            char inbuffer[1024];
+            // 读
+            ssize_t r = read(sockfd, inbuffer, sizeof(inbuffer) - 1);
+
+            if (r > 0) {
+                // 1. 收到数据
+                inbuffer[r] = 0;
+                LOG(LogLevel::INFO) << "数据接收成功,客户端 " << address.ToString() << " 说# " << inbuffer;
+                // 写
+                std::string echo_string = "server 回显# ";
+                echo_string += inbuffer;
+                write(sockfd, echo_string.c_str(), echo_string.size());
+            }
+            else if (r == 0) {
+                // 2. 客户端主动断开连接
+                LOG(LogLevel::INFO) << "客户端 " << address.ToString() << " 主动退出.";
+                break;
+            }
+            else {  // n == -1
+                // 3. 连接失败
+                LOG(LogLevel::WARNING) << "客户端 " << address.ToString() << " 连接错误.";
+                break;
+            }
+        }
     }
 
     void Loop() {
@@ -76,12 +106,13 @@ public:
             LOG(LogLevel::INFO) << "accpet成功!，sockfd:" << sockfd;
 
             // 6. 处理新的sockfd
+            InetAddr clientaddress(clientaddr);
+            serviceIO(sockfd, clientaddress);
 
 
             close(sockfd);
         }
 
-        
     }
 
 private:
