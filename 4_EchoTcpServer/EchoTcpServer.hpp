@@ -5,14 +5,19 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <string>
+#include <functional>
 // #include <signal.h>
 #include <sys/wait.h>
 #include <pthread.h>
 #include <cstring>
 #include "Logger.hpp"
 #include "InetAddr.hpp"
+#include "ThreadPool.hpp"
 
 using namespace NS_LOG_MODULE;
+using namespace NS_THREAD_POOL_MODULE;
+
+using task_t = std::function<void()>;
 
 const static uint16_t default_port = 8888;
 
@@ -68,7 +73,7 @@ public:
         LOG(LogLevel::INFO) << "listen监听开启!";
     }
 
-    void serviceIO(int sockfd, InetAddr& address) {
+    void serviceIO(int sockfd, InetAddr address) {
 
         // 短连接，短服务
         LOG(LogLevel::INFO) << "client address is " << address.ToString();
@@ -93,6 +98,7 @@ public:
             // 3. 连接失败
             LOG(LogLevel::WARNING) << "客户端 " << address.ToString() << " 连接错误---" << strerror(errno);
         }
+        close(sockfd);
 
 
         // // 长服务，长连接，小型应用
@@ -133,9 +139,7 @@ public:
          _addr(addr)
         {}
         ~ThreadData()
-        {
-            close(_sockfd);
-        }
+        {}
     public:
         TcpServer* _this;
         int _sockfd;
@@ -203,12 +207,20 @@ public:
 
 
             // 第三版，多线程
-            pthread_t tid;
+            // pthread_t tid;
+            // InetAddr clientaddress(clientaddr);
+            // ThreadData* td = new ThreadData(this, sockfd, clientaddress);
+            // pthread_create(&tid, nullptr, thread_routine, (void*)td);
+            /*多线程下这里绝不能 close(sockfd)！
+            所有线程共享同一张 fd 表，主线程关了工作线程就没法用了（Bad file descriptor）*/
+            
+
+            // 第四版，线程池
             InetAddr clientaddress(clientaddr);
-            ThreadData* td = new ThreadData(this, sockfd, clientaddress);
-            pthread_create(&tid, nullptr, thread_routine, (void*)td);
-            // 多线程下这里绝不能 close(sockfd)！
-            // 所有线程共享同一张 fd 表，主线程关了工作线程就没法用了（Bad file descriptor）
+            task_t t = [this, sockfd, clientaddress](){
+                serviceIO(sockfd, clientaddress);
+            };
+            ThreadPool<task_t>::Instance()->Enqueue(t);
         }
     }
 
