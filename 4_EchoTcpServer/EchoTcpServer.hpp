@@ -7,6 +7,8 @@
 #include <string>
 // #include <signal.h>
 #include <sys/wait.h>
+#include <pthread.h>
+#include <cstring>
 #include "Logger.hpp"
 #include "InetAddr.hpp"
 
@@ -67,32 +69,85 @@ public:
     }
 
     void serviceIO(int sockfd, InetAddr& address) {
-        LOG(LogLevel::INFO) << "client address is " << address.ToString();
-        while (true) {
-            char inbuffer[1024];
-            // 读
-            ssize_t r = read(sockfd, inbuffer, sizeof(inbuffer) - 1);
 
-            if (r > 0) {
-                // 1. 收到数据
-                inbuffer[r] = 0;
-                LOG(LogLevel::INFO) << "数据接收成功,客户端 " << address.ToString() << " 说# " << inbuffer;
-                // 写
-                std::string echo_string = "server 回显# ";
-                echo_string += inbuffer;
-                write(sockfd, echo_string.c_str(), echo_string.size());
-            }
-            else if (r == 0) {
-                // 2. 客户端主动断开连接
-                LOG(LogLevel::INFO) << "客户端 " << address.ToString() << " 主动退出.";
-                break;
-            }
-            else {  // n == -1
-                // 3. 连接失败
-                LOG(LogLevel::WARNING) << "客户端 " << address.ToString() << " 连接错误.";
-                break;
-            }
+        // 短连接，短服务
+        LOG(LogLevel::INFO) << "client address is " << address.ToString();
+        char inbuffer[1024];
+        // 读
+        ssize_t r = read(sockfd, inbuffer, sizeof(inbuffer) - 1);
+
+        if (r > 0) {
+            // 1. 收到数据
+            inbuffer[r] = 0;
+            LOG(LogLevel::INFO) << "数据接收成功,客户端 " << address.ToString() << " 说# " << inbuffer;
+            // 写
+            std::string echo_string = "server 回显# ";
+            echo_string += inbuffer;
+            write(sockfd, echo_string.c_str(), echo_string.size());
         }
+        else if (r == 0) {
+            // 2. 客户端主动断开连接
+            LOG(LogLevel::INFO) << "客户端 " << address.ToString() << " 主动退出.";
+        }
+        else {  // n == -1
+            // 3. 连接失败
+            LOG(LogLevel::WARNING) << "客户端 " << address.ToString() << " 连接错误---" << strerror(errno);
+        }
+
+
+        // // 长服务，长连接，小型应用
+        // LOG(LogLevel::INFO) << "client address is " << address.ToString();
+        // while (true) {
+        //     char inbuffer[1024];
+        //     // 读
+        //     ssize_t r = read(sockfd, inbuffer, sizeof(inbuffer) - 1);
+
+        //     if (r > 0) {
+        //         // 1. 收到数据
+        //         inbuffer[r] = 0;
+        //         LOG(LogLevel::INFO) << "数据接收成功,客户端 " << address.ToString() << " 说# " << inbuffer;
+        //         // 写
+        //         std::string echo_string = "server 回显# ";
+        //         echo_string += inbuffer;
+        //         write(sockfd, echo_string.c_str(), echo_string.size());
+        //     }
+        //     else if (r == 0) {
+        //         // 2. 客户端主动断开连接
+        //         LOG(LogLevel::INFO) << "客户端 " << address.ToString() << " 主动退出.";
+        //         break;
+        //     }
+        //     else {  // n == -1
+        //         // 3. 连接失败
+        //         LOG(LogLevel::WARNING) << "客户端 " << address.ToString() << " 连接错误---" << strerror(errno);
+        //         break;
+        //     }
+        // }
+    }
+
+    class ThreadData
+    {
+    public:
+        ThreadData(TcpServer* ts, int sockfd, const InetAddr& addr)
+        :_this(ts),
+         _sockfd(sockfd),
+         _addr(addr)
+        {}
+        ~ThreadData()
+        {
+            close(_sockfd);
+        }
+    public:
+        TcpServer* _this;
+        int _sockfd;
+        InetAddr _addr;
+    };
+
+    static void *thread_routine(void* args) {
+        ThreadData* td = static_cast<ThreadData*>(args);
+        pthread_detach(pthread_self());
+        td->_this->serviceIO(td->_sockfd, td->_addr);
+        delete td;
+        return nullptr;
     }
 
     void Loop() {
@@ -115,36 +170,45 @@ public:
             // InetAddr clientaddress(clientaddr);
             // serviceIO(sockfd, clientaddress);
 
+            
             // 第二版，多进程
-            pid_t id = fork();
-            if (id < 0) {
-                LOG(LogLevel::FATAL) << "fork error!";
-                exit(FORK_ERR);
-            }
-            else if (id == 0) {
-                // 子进程
+            // pid_t id = fork();
+            // if (id < 0) {
+            //     LOG(LogLevel::FATAL) << "fork error!";
+            //     exit(FORK_ERR);
+            // }
+            // else if (id == 0) {
+            //     // 子进程
 
-                // 关闭掉自己不需要的sockfd
-                close(_listen_sockfd);
+            //     // 关闭掉自己不需要的sockfd
+            //     close(_listen_sockfd);
 
-                if (fork() > 0) exit(0);    // 子进程直接退出
+            //     if (fork() > 0) exit(0);    // 子进程直接退出
 
-                // 孙子进程 -- 孤儿进程(系统自动回收)
-                InetAddr clientaddress(clientaddr);
-                serviceIO(sockfd, clientaddress);
-                close(sockfd);
-                exit(0);
-            }
-            else {  // id > 0
-                // 父进程
+            //     // 孙子进程 -- 孤儿进程(系统自动回收)
+            //     InetAddr clientaddress(clientaddr);
+            //     serviceIO(sockfd, clientaddress);
+            //     close(sockfd);
+            //     exit(0);
+            // }
+            // else {  // id > 0
+            //     // 父进程
 
-                // 关掉自己不需要的sockfd
-                close(sockfd);
+            //     // 关掉自己不需要的sockfd
+            //     close(sockfd);
 
-                pid_t rid = waitpid(id, nullptr, 0);
-                (void)rid;
-            }
-            close(sockfd);
+            //     pid_t rid = waitpid(id, nullptr, 0);
+            //     (void)rid;
+            // }
+
+
+            // 第三版，多线程
+            pthread_t tid;
+            InetAddr clientaddress(clientaddr);
+            ThreadData* td = new ThreadData(this, sockfd, clientaddress);
+            pthread_create(&tid, nullptr, thread_routine, (void*)td);
+            // 多线程下这里绝不能 close(sockfd)！
+            // 所有线程共享同一张 fd 表，主线程关了工作线程就没法用了（Bad file descriptor）
         }
     }
 

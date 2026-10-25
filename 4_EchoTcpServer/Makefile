@@ -1,7 +1,7 @@
 .PHONY:all
 all:client_tcp server_tcp
 server_tcp:EchoTcpServerMain.cpp
-	g++ -o $@ $^ -std=c++17
+	g++ -o $@ $^ -std=c++17 -lpthread
 client_tcp:EchoTcpClient.cpp
 	g++ -o $@ $^ -std=c++17
 
