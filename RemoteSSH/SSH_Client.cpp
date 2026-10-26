@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <string>
+#include <cstring>
 #include "InetAddr.hpp"
 
 static const int default_sockfd = -1;
@@ -63,19 +64,66 @@ public:
             return;
         }
         _status = Status::CONNECTED;
-        // std::cout << "connect()连接服务端成功！" << std::endl;
+        std::cout << "连接服务端成功！" << std::endl;
     }
 
     void ReConnect() {
-
+        _status = Status::CONNECTING;
+        int cnt = 0;
+        while (true) {
+            Connect();
+            if (_status == Status::CONNECTED) {
+                break;
+            }
+            ++cnt;
+            if (cnt > _max_retries) {
+                _status = Status::CLOSED;
+                std::cout << "重连失败，请检查你的网络..." << std::endl;
+                break;
+            }
+            std::cout << "断线重连中，重连次数：" << cnt << std::endl;
+            sleep(_retry_interval);
+        }
     }
 
     void Process() {    // 正常的IO通信
-
+        while (true) {
+            std::string line;
+            std::cout << "请输入需要发送的消息# " ;
+            std::getline(std::cin, line);
+            ssize_t n = write(_sockfd, line.c_str(), line.size());
+            if (n > 0) {
+                char inbuffer[1024];
+                int r = read(_sockfd, inbuffer, sizeof(inbuffer) - 1);
+                if(r > 0) {
+                    inbuffer[r] = 0;
+                    std::cout << inbuffer << std::endl;
+                }
+                else if (r == 0) {
+                    std::cout << "未读到数据或已经读到文件末尾" << std::endl;
+                    _status = Status::DISCONNECTED;
+                    break;
+                }
+                else {
+                    std::cerr << "read()读取错误" << std::endl;
+                    _status = Status::DISCONNECTED;
+                    break;
+                }
+            }
+            else {
+                std::cerr << "write error---" << strerror(errno) << std::endl;
+                _status = Status::CLOSED;
+                break;
+            }
+        }
     }
 
     void DisConnect() {
-
+        if (_sockfd > default_sockfd) {
+            close(_sockfd);
+            _sockfd = default_sockfd;
+            _status = Status::CLOSED;
+        }
     }
 private:
     int _sockfd;
@@ -135,46 +183,5 @@ int main(int argc, char* argv[]) {
     uint16_t server_port = std::stoi(argv[2]);
     TcpClient tc(server_ip, server_port);
     tc.Execute();
-
-
-    // // 1. 创建tcp_socket套接字
-    // int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    // if (sockfd < 0) {
-    //     std::cerr << "客户端socket()创建套接字失败。" << std::endl;
-    //     exit(2);
-    // }
-
-    // // 2. 虽然不用显示bind()绑定，但是得connect()发起建立连接的请求
-    // InetAddr server_addr(server_port, server_ip);
-    // int n = connect(sockfd, (struct sockaddr*)server_addr.GetNetAddress(), server_addr.Len());
-    // if (n < 0) {
-    //     std::cerr << "connect()连接服务端 " << server_addr.ToString() << " 错误！" << std::endl;
-    //     exit(3);
-    // }
-    // std::cout << "connect()连接服务端成功！" << std::endl;
-
-    // // 3. 通信
-    // while (true) {
-    //     std::string line;
-    //     std::cout << "请输入需要发送的消息# " ;
-    //     std::getline(std::cin, line);
-    //     write(sockfd, line.c_str(), line.size());
-
-    //     char inbuffer[1024];
-    //     int r = read(sockfd, inbuffer, sizeof(inbuffer));
-    //     if(r > 0) {
-    //         inbuffer[r] = 0;
-    //         std::cout << inbuffer << std::endl;
-    //     }
-    //     else if (r == 0) {
-    //         std::cout << "未读到数据或已经读到文件末尾" << std::endl;
-    //         break;
-    //     }
-    //     else {
-    //         std::cerr << "read()读取错误" << std::endl;
-    //         break;
-    //     }
-    // }
-
     return 0;
 }
